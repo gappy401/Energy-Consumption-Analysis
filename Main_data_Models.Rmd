@@ -1,0 +1,803 @@
+---
+title: "Main_data_Models"
+output: html_document
+date: "2023-12-03"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+
+library (arrow)
+library(arrow)
+library(tidyverse)
+Merged_Final<-read_parquet("Aggregate_Final_Dataset.parquet")
+```
+
+```{r}
+str(Merged_Final)
+```
+
+```{r}
+# cols_1<-c('in.sqft',
+# 'in.bedrooms',
+# 'in.building_america_climate_zone',
+# 'in.ceiling_fan',
+# 'in.cooling_setpoint',
+# 'in.cooling_setpoint_has_offset',
+# 'in.cooling_setpoint_offset_magnitude',
+# 'in.cooling_setpoint_offset_period',
+# 'in.ducts',
+# 'in.geometry_foundation_type',
+# 'in.geometry_wall_type',
+# 'in.has_pv',
+# 'in.heating_fuel',
+# 'in.hot_water_fixtures',
+# 'in.hvac_cooling_partial_space_conditioning',
+# 'in.hvac_cooling_type',
+# 'in.hvac_heating_type',
+# 'in.hvac_heating_type_and_fuel',
+# 'in.insulation_ceiling',
+# 'in.insulation_wall',
+# 'in.lighting',
+# 'in.misc_extra_refrigerator',
+# 'in.misc_freezer',
+# 'in.misc_pool_pump',
+# 'in.occupants',
+# 'in.pv_system_size',
+# 'in.refrigerator',
+# 'in.roof_material',
+# 'in.usage_level',
+# 'in.vacancy_status',
+# 'in.water_heater_efficiency',
+# 'in.water_heater_fuel',
+# 'Final_Energy_KWH'
+# )
+# 
+# Subset_V1<-Merged_Final[,cols_1]
+```
+
+
+
+```{r}
+# str(Subset_V1)
+# non_numeric_cols <- sapply(Subset_V1, function(x) !is.numeric(x))
+# Subset_V1[non_numeric_cols] <- lapply(Subset_V1[non_numeric_cols], as.factor)
+# str(Subset_V1)
+# 
+# 
+# 
+# # Example assuming 'energy_consumption' is the target variable
+# model_lm <- lm( Final_Energy_KWH~ ., data = Subset_V1)
+# summary(model_lm)
+
+```
+1. This is the first version of the Model, it has around 35 variables and we used linear regression on energy here. Here we analyzed using the P value which coloumns were significant and which ones weren't.
+
+Some columns include environmental variables like 'Dry Bulb Temperature [°C]', 'Relative Humidity [%]', and 'Global Horizontal Radiation [W/m2]'.
+It also includes building-specific attributes like 'in.sqft', 'in.bedrooms', 'in.building_america_climate_zone', and other features related to appliances, HVAC systems, insulation, energy consumption ('Final_Energy_KWH'), among others.
+
+
+```{r}
+cols_2<-c(
+'Dry Bulb Temperature [°C]',
+'Relative Humidity [%]',
+'Global Horizontal Radiation [W/m2]',
+'in.sqft',
+'in.bedrooms',
+'in.building_america_climate_zone',
+'in.ceiling_fan',
+'in.cooling_setpoint',
+'in.cooling_setpoint_has_offset',
+'in.cooling_setpoint_offset_magnitude',
+'in.clothes_dryer',
+'in.clothes_washer',
+'in.ducts',
+'in.geometry_foundation_type',
+'in.geometry_wall_type',
+'in.has_pv',
+'in.heating_fuel',
+'in.hot_water_fixtures',
+'in.hvac_cooling_partial_space_conditioning',
+'in.hvac_cooling_type',
+'in.hvac_heating_type',
+'in.insulation_ceiling',
+'in.insulation_wall',
+'in.lighting',
+'in.misc_extra_refrigerator',
+'in.misc_freezer',
+'in.misc_pool_pump',
+'in.occupants',
+'in.pv_system_size',
+'in.refrigerator',
+'in.roof_material',
+'in.usage_level',
+'in.vacancy_status',
+'in.water_heater_efficiency',
+'in.water_heater_fuel',
+'Final_Energy_KWH'
+)
+
+Subset_V2<-Merged_Final[,cols_2]
+```
+
+Observations :
+
+Interpretation of coefficients: For instance, Dry Bulb Temperature [°C], Relative Humidity [%], and Global Horizontal Radiation [W/m2] have extremely low p-values (close to zero), suggesting a high level of significance in predicting Final_Energy_KWH.
+
+Multiple R-squared: This indicates the proportion of variance in the dependent variable that is explained by the independent variables in the model. A value of 0.6603 suggests that approximately 66.03% of the variance in the dependent variable is accounted for by the independent variables.
+
+Adjusted R-squared: Similar to R-squared, but adjusted for the number of predictors in the model. It penalizes for adding unnecessary variables. In your case, it's 0.6599, indicating the same information but adjusted for the number of predictors.
+
+```{r}
+str(Subset_V2)
+non_numeric_cols <- sapply(Subset_V2, function(x) !is.numeric(x))
+Subset_V2[non_numeric_cols] <- lapply(Subset_V2[non_numeric_cols], as.factor)
+str(Subset_V2)
+
+
+
+# Example assuming 'energy_consumption' is the target variable
+model_lm_2 <- lm( Final_Energy_KWH~ ., data = Subset_V2)
+summary(model_lm_2)
+
+```
+#Model 3
+
+Coloums contain :
+It contains many columns from cols_2, such as environmental variables, building-specific attributes, and energy-related features.
+Additionally, cols_3 introduces new variables like 'in.county', 'hour', 'in.insulation_slab', 'Wind Speed [m/s]', and a couple of others that were not present in cols_2. 
+
+```{r}
+cols_3<-c(
+  'Dry Bulb Temperature [°C]',
+   'Relative Humidity [%]',
+  'in.county',
+  'hour',
+  'Global Horizontal Radiation [W/m2]',
+  'in.sqft',
+'in.bedrooms',
+'in.building_america_climate_zone',
+'in.ceiling_fan',
+'in.cooling_setpoint',
+'in.cooling_setpoint_has_offset',
+'in.cooling_setpoint_offset_magnitude',
+#-----------
+'in.clothes_dryer',
+'in.clothes_washer',
+'in.insulation_slab',
+'Wind Speed [m/s]',
+#-------------------
+'in.ducts',
+'in.geometry_foundation_type',
+'in.geometry_wall_type',
+'in.has_pv',
+'in.heating_fuel',
+'in.hot_water_fixtures',
+'in.hvac_cooling_partial_space_conditioning',
+'in.hvac_cooling_type',
+'in.hvac_heating_type',
+#'in.hvac_heating_type_and_fuel',
+'in.insulation_ceiling',
+'in.insulation_wall',
+'in.lighting',
+'in.misc_extra_refrigerator',
+'in.misc_freezer',
+'in.misc_pool_pump',
+'in.occupants',
+'in.pv_system_size',
+'in.refrigerator',
+'in.roof_material',
+'in.usage_level',
+'in.vacancy_status',
+'in.water_heater_efficiency',
+'in.water_heater_fuel',
+'Final_Energy_KWH'
+)
+
+Subset_V3<-Merged_Final[,cols_3]
+```
+
+
+
+```{r}
+str(Subset_V3)
+non_numeric_cols <- sapply(Subset_V3, function(x) !is.numeric(x))
+Subset_V3[non_numeric_cols] <- lapply(Subset_V3[non_numeric_cols], as.factor)
+str(Subset_V3)
+```
+Observations  :
+
+Multiple R-squared: This value (0.6823) represents the proportion of variance in the dependent variable (in this case, Final_Energy_KWH) that is explained by the independent variables included in the model. It ranges between 0 and 1, where 1 indicates that all variability in the response variable is explained by the predictors.
+
+Adjusted R-squared: Similar to R-squared, but adjusted for the number of predictors in the model. It penalizes the addition of irrelevant predictors that do not improve the model significantly. In your case, it's 0.6818, slightly lower than the Multiple R-squared due to the adjustment for the number of predictors.
+
+```{r}
+
+
+# Example assuming 'energy_consumption' is the target variable
+model_lm_3 <- lm( Final_Energy_KWH~ ., data = Subset_V3)
+summary(model_lm_3)
+
+```
+XGBoost :
+
+The decision to use XGBoost (Extreme Gradient Boosting)  over linear regression due to various factors:
+
+1.Complexity and Non-linearity: Linear regression assumes a linear relationship between the independent and dependent variables. If your data has complex, non-linear relationships, XGBoost, being a tree-based ensemble method, can capture these non-linearities more effectively than linear regression.
+
+2.Feature Interactions: XGBoost can capture interactions between variables better than linear regression. Linear regression assumes that the effect of an independent variable is constant, whereas XGBoost can handle interactions between variables more flexibly.
+
+3.Performance: If your primary goal is predictive accuracy and the linear model isn't performing well on your dataset (based on metrics like RMSE, MAE, etc.), XGBoost or other tree-based methods might yield better results.
+
+4.Handling of Large Datasets: XGBoost is often more scalable and efficient for larger datasets compared to traditional linear regression models.
+
+5.Feature Importance: XGBoost provides a feature importance score, which can help identify the most significant variables influencing the target compared to linear regression.
+
+6.Model Interpretability: Linear regression models are more interpretable since they directly show the relationship between variables and the target. XGBoost, being a more complex model, is generally less interpretable.
+
+In summary, while linear regression provides simple interpretability and assumes a linear relationship between variables, XGBoost can handle non-linear relationships and interactions, making it a powerful algorithm for predictive tasks, especially when the data is complex or when high predictive accuracy is needed. 
+
+Final Model
+```{r}
+library(arrow)
+library(tidyverse)
+
+
+
+cols_4<-c('hour',
+          'in.county',
+          'Dry Bulb Temperature [°C]','Relative Humidity [%]','Wind Speed [m/s]',
+          'Wind Direction [Deg]','Direct Normal Radiation [W/m2]','Diffuse Horizontal Radiation [W/m2]',
+          'Global Horizontal Radiation [W/m2]', 'in.sqft',
+          'in.bedrooms',
+          'in.building_america_climate_zone',
+          'in.ceiling_fan',
+          'in.clothes_dryer',
+          'in.clothes_washer',
+          'in.cooling_setpoint',
+          'in.cooling_setpoint_has_offset',
+          'in.cooling_setpoint_offset_magnitude',
+          'in.dishwasher',
+          'in.ducts',
+          'in.geometry_foundation_type',
+          'in.geometry_wall_type',
+          'in.geometry_stories',
+          'in.has_pv',
+          'in.heating_fuel',
+          'in.hot_water_fixtures',
+          'in.hvac_cooling_partial_space_conditioning',
+          'in.hvac_cooling_type',
+          'in.hvac_heating_type',
+          'in.hvac_heating_type_and_fuel',
+          'in.infiltration',
+          'in.insulation_ceiling',
+          'in.insulation_wall',
+          'in.lighting',
+          'in.misc_extra_refrigerator',
+          'in.misc_freezer',
+          'in.misc_pool_pump',
+          'in.occupants',
+          'in.pv_system_size',
+          'in.refrigerator',
+          'in.roof_material',
+          'in.usage_level',
+          'in.vacancy_status',
+          'in.water_heater_efficiency',
+          'in.water_heater_fuel',
+          'Final_Energy_KWH'
+          
+)
+
+Subset_V4<-Merged_Final[,cols_4]
+
+non_numeric_cols <- sapply(Subset_V4, function(x) !is.numeric(x))
+Subset_V4[non_numeric_cols] <- lapply(Subset_V4[non_numeric_cols], as.factor)
+
+#xGBoost Model
+set.seed(123)
+
+# Split data into training and test sets (e.g., 80% training, 20% test)
+train_indices <- sample(1:nrow(Subset_V4), size = 0.7 * nrow(Subset_V4))
+train_data <- Subset_V4[train_indices, ]
+test_data <- Subset_V4[-train_indices, ]
+```
+XGBoost is also effective at handling non-linear relationships between predictor and target variables, which is important for our analysis. Additionally, it demonstrates robustness against outliers, a valuable feature considering the presence of airbases, airports, and similar data points. Moreover, XGBoost is more focused on making predictions rather than drawing inferences, aligning well with the project's prediction-oriented objectives. Furthermore, XGBoost provides feature importance scores, allowing us to pinpoint the variables that exert the most significant influence on the prediction, aiding in identifying key drivers of Final Energy Consumption
+
+```{r}
+
+library (xgboost)
+
+# Convert training data to DMatrix format
+dtrain <- xgb.DMatrix(data = data.matrix(train_data[, -which(names(train_data) == "Final_Energy_KWH")]), 
+                      label = train_data$Final_Energy_KWH)
+
+params <- list(
+  objective = "reg:squarederror",
+  eta = 0.1,
+  max_depth = 8,
+  subsample = 0.5,
+  colsample_bytree = 0.5
+)
+
+nrounds <- 3000  # Number of boosting rounds. Adjust based on your dataset and needs
+
+xgb_model <- xgboost(params = params, data = dtrain, nrounds = nrounds)
+
+#summary(xgb_model)
+
+
+# Assuming you have a trained XGBoost model 'xgb_model' and a test set 'test_data'
+
+# Predict on the test set
+dtest <- xgb.DMatrix(data = data.matrix(test_data[, -which(names(test_data) == "Final_Energy_KWH")]))
+predictions1 <- predict(xgb_model, dtest)
+
+```
+RMSE (Root Mean Squared Error): 6.31186571704705
+
+RMSE is a measure of the average deviation of predicted values from the actual observed values. It represents the square root of the average of the squared differences between predicted and actual values.
+
+In this case, the RMSE value of approximately 6.31 suggests that, on average, the predictions of the model are around 6.31 units away from the actual values. 
+
+An R-squared value of approximately 0.919 (or 91.9%) indicates that roughly 91.9% of the variance in the dependent variable is accounted for by the independent variables in the model, suggesting that the model explains a large portion of the variability in the target energy variable.
+
+Overall, We believe the model has reasonably good performance: the RMSE shows that the predictions are relatively close to the actual values on average, while the high R-squared value indicates that a significant amount of the variance in the target variable is captured by the model.
+```{r}
+# Compute RMSE
+rmse <- sqrt(mean((predictions1 - test_data$Final_Energy_KWH)^2))
+print(paste("RMSE:", rmse))
+
+# Compute R-squared
+SST <- sum((test_data$Final_Energy_KWH - mean(test_data$Final_Energy_KWH))^2)
+SSR <- sum((predictions1 - test_data$Final_Energy_KWH)^2)
+r_squared <- 1 - SSR/SST
+print(paste("R-squared:", r_squared))
+
+
+#range(predictions1-test_data$Final_Energy_KWH)
+#summary(predictions1-test_data$Final_Energy_KWH) 
+# Visualize feature importance
+```
+This gives us the variables the model thinks are most relevant for energy consumption. Size first, ceiling fan, infiltration, pv size and so on are the major contributing factors (these are all the factors we can control). Apart from this most of the weather factors are also the front runner for energy consumption.
+
+```{r}
+importance_matrix <- xgb.importance(model = xgb_model)
+print(importance_matrix)
+# Visualize feature importance
+xgb.plot.importance(importance_matrix)
+
+
+```
+Plotting a graph of energy consumption with a 5 degree celcius increase in temperature
+```{r}
+
+Test_Optimied_Variables <-Subset_V4
+#Test_Optimied_Variables$in.insulation_wall<-"Brick, 12-in, 3-wythe, R-7"
+#Test_Optimied_Variables$in.hvac_cooling_partial_space_conditioning<-"40% Conditioned"
+#Test_Optimied_Variables$in.usage_level<-"Low"
+Test_Optimied_Variables$`Dry Bulb Temperature [°C]`<-Test_Optimied_Variables$`Dry Bulb Temperature [°C]`+5
+
+dtest2 <- xgb.DMatrix(data = data.matrix(Test_Optimied_Variables[, -which(names(test_data) == "Final_Energy_KWH")]))
+
+predictions1 <- predict(xgb_model, dtest2)
+#actual vs predicted reduced due to upgrades
+df_new = data.frame(predictions1,Subset_V4$Final_Energy_KWH)
+#df_new
+#sum(predictions1)
+#sum(Subset_V4$Final_Energy_KWH)
+
+
+data <- data.frame(
+  Category = rep(c("Predicted Energy", "Current Energy"),each=nrow(predictions1)),
+  Energy_Value = c(predictions1, test_data$Final_Energy_KWH)
+)
+
+Test_Optimied_Variables$predictions1<-predictions1
+
+#glimpse(Test_Optimied_Variables)
+```
+
+```{r}
+# Load necessary libraries
+library(ggplot2)
+library(dplyr)
+library(maps)
+#install.packages("mapdata")
+library(mapdata)
+#install.packages("ggrepel")
+library(ggrepel)
+ ICPSRNAM = c("ABBEVILLE", "AIKEN", "ALLENDALE", "ANDERSON", "BAMBERG", "BARNWELL", "BEAUFORT", "BERKELEY", "CALHOUN", "CHARLESTON", 
+               "CHEROKEE", "CHESTER", "CHESTERFIELD", "CLARENDON", "COLLETON", "DARLINGTON", "DILLON", "DORCHESTER", "EDGEFIELD", 
+               "FAIRFIELD", "FLORENCE", "GEORGETOWN", "GREENVILLE", "GREENWOOD", "HAMPTON", "HORRY", "JASPER", "KERSHAW", "LANCASTER", 
+               "LAURENS", "LEE", "LEXINGTON", "MARION", "MARLBORO", "MCCORMICK", "NEWBERRY", "OCONEE", "ORANGEBURG", "PICKENS", 
+               "RICHLAND", "SALUDA", "SPARTANBURG", "SUMTER", "UNION", "WILLIAMSBURG", "YORK")
+ 
+  GISJOIN = c("G4500010", "G4500030", "G4500050", "G4500070", "G4500090", "G4500110", "G4500130", "G4500150", "G4500170", "G4500190", 
+              "G4500210", "G4500230", "G4500250", "G4500270", "G4500290", "G4500310", "G4500330", "G4500350", "G4500370", "G4500390", 
+              "G4500410", "G4500430", "G4500450", "G4500470", "G4500490", "G4500510", "G4500530", "G4500550", "G4500570", "G4500590", 
+              "G4500610", "G4500630", "G4500670", "G4500690", "G4500650", "G4500710", "G4500730", "G4500750", "G4500770", "G4500790", 
+              "G4500810", "G4500830", "G4500850", "G4500870", "G4500890", "G4500910")
+# Calculate total energy by county
+List_Name<-data.frame(tolower(ICPSRNAM),(GISJOIN))
+#List_Name
+energy_data <- Subset_V4 %>%
+  group_by(in.county) %>%
+  summarize(total_energy = sum(Final_Energy_KWH, na.rm = TRUE))
+energy_data$County_name<-List_Name$tolower.ICPSRNAM.[match(energy_data$in.county,List_Name$X.GISJOIN.)]
+
+
+county_map <- map_data("county", region = "south carolina")
+county_map$subregion<-tolower(county_map$subregion)
+energy_data$in.county<-tolower(energy_data$in.county)
+
+# Merge energy data with the county map
+merged_data <- merge(county_map, energy_data, by.x = "subregion", by.y = "County_name", all.x = TRUE)
+#merged_data
+# Create the heatmap
+
+```
+
+Observations :
+
+This map is inline with the building density we saw in the extrapolation part of this project. The energy consumption is highest for greenville followed by the others like horry, colleton, georgetown!
+```{r}
+
+ggplot(merged_data, aes(x = long, y = lat, group = group, fill = total_energy)) +
+  geom_polygon() +
+  scale_fill_gradient(low = "yellow", high = "red") +
+  labs(title = "Energy Consumption Heatmap by County in South Carolina") +
+  theme_minimal() +
+  
+  # Add labels using geom_text_repel
+  geom_text_repel(
+    data = merged_data[!duplicated(merged_data$subregion), ], # Select only unique subregions
+    aes(label = subregion),
+    color = "black",
+    size = 3,
+    box.padding = unit(0.2, "lines") # Adjust the label padding if needed
+  )
+
+
+
+```
+
+This graph shows a county wise increse in energy consumption when there is temperature increase, we see horry has the hightest percentage incresase of more than 30% but greenville still has had thehigest increse magnitutde wise as it is 25%.
+
+```{r}
+
+
+Summarize_Predictions<-Test_Optimied_Variables %>%group_by(in.county) %>%
+  summarize(total_energy = sum(Final_Energy_KWH, na.rm = TRUE),predicted_energy=sum(predictions1,na.rm=TRUE))
+
+Summarize_Predictions$County_name<-List_Name$tolower.ICPSRNAM.[match(Summarize_Predictions$in.county,List_Name$X.GISJOIN.)]
+head(Summarize_Predictions)
+#str(Summarize_Predictions)
+# 
+# 
+# library(ggplot2)
+# 
+# # Create a bar plot
+# ggplot(data = Summarize_Predictions, aes(x = in.county)) +
+#   geom_bar(aes(y = total_energy), stat = "identity", fill = "blue", alpha = 0.6) +
+#   geom_bar(aes(y = predicted_energy), stat = "identity", fill = "red", alpha = 0.6) +
+#   labs(title = "Total Energy in July vs Predicted Energy (with increase by 5 C) by County",
+#        x = "County", y = "Energy") +
+#   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+# 
+
+
+# Calculate percentage difference
+Summarize_Predictions$percentage_diff <- ( (Summarize_Predictions$predicted_energy -Summarize_Predictions$total_energy)/Summarize_Predictions$total_energy) * 100
+
+# Create a bar plot with percentage difference labels
+ggplot(data = Summarize_Predictions, aes(x = County_name)) +
+  geom_bar(aes(y = total_energy), stat = "identity", fill = "blue", alpha = 0.6) +
+  geom_bar(aes(y = predicted_energy), stat = "identity", fill = "red", alpha = 0.6) +
+  geom_text(aes(y = pmax(predicted_energy, total_energy), 
+                label = paste0(round(percentage_diff, 2), "%")), 
+            position = position_stack(vjust = 0.5), 
+            size = 3, 
+            color = "black", 
+            angle = 90, 
+            hjust = -0.5) +  
+  labs(title = "Total Energy in July vs Predicted Energy (with increase by 5 C) by County",
+       x = "County", y = "Energy") +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+
+
+
+
+```
+This graph shows total increase ecpected in july
+```{r}
+sum_energy<-sum(Summarize_Predictions$total_energy)
+Predicted<-sum(Summarize_Predictions$predicted_energy)
+values <- c(sum_energy, Predicted)
+
+options(scipen = 999) 
+# Creating a bar plot
+barplot(values, names.arg = c("Total Energy for July", "Predicted Energy with 5 Celcius increase"), col = "lightgreen",
+        xlab = "Energy", ylab = "Total Value", main = "Comparison of Total and Predicted Energy")
+
+
+```
+This graph illustrates the hourly temperature increase throughout the month of July. We see the enrgy consumtion peak at round 4pm and then it starts to come down from there. Even with increse in temperature the pattern has not changed ,just the magnitutde of consumption has increased.
+```{r}
+
+Predictions_hour<-Test_Optimied_Variables %>%group_by(hour) %>%
+  summarize(total_energy = sum(Final_Energy_KWH, na.rm = TRUE),predicted_energy=sum(predictions1,na.rm=TRUE))
+
+# Calculate percentage difference
+Predictions_hour$percentage_diff <- ((Predictions_hour$predicted_energy - Predictions_hour$total_energy) / Predictions_hour$total_energy) * 100
+
+#since temp increse people keep appliances on often
+ggplot(data = Predictions_hour, aes(x = hour)) +
+  geom_bar(aes(y = total_energy), stat = "identity", fill = "blue", alpha = 0.6) +
+  geom_bar(aes(y = predicted_energy), stat = "identity", fill = "red", alpha = 0.6) +
+  geom_text(aes(y = pmax(predicted_energy, total_energy), 
+                label = paste0(round(percentage_diff, 2), "%")), 
+            position = position_stack(vjust = 0.5), 
+            size = 3, 
+            color = "black", 
+            angle = 90, 
+            hjust = -0.5) +  
+  labs(title = "Total Energy in July vs Predicted Energy (with increase by 5 C) by Hour",
+       x = "Hourly", y = "Energy") +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+
+```
+To conclude we see a considerable increase in the total consumption. The value jumps from 5.3 Million to 7.2 Million which is around 40% more than before. 
+```{r}
+Test_Optimied_Variables_reduce <-Subset_V4
+Test_Optimied_Variables_reduce$`Dry Bulb Temperature [°C]`<-Test_Optimied_Variables$`Dry Bulb Temperature [°C]`+5
+#Test_Optimied_Variables_reduce$in.ceiling_fan<-"Standard Efficiency, No usage"
+#Test_Optimied_Variables$in.insulation_wall<-"Brick, 12-in, 3-wythe, R-7"
+#Test_Optimied_Variables$in.hvac_cooling_partial_space_conditioning<-"40% Conditioned"
+# Test_Optimied_Variables$in.usage_level<-"Low"
+#Test_Optimied_Variables_reduce$in.pv_system_size<-"1.0 kWDC"
+
+# Assuming 'Test_Optimized_Variables_reduce' is your dataset
+
+# Replace "none" with "1kw" in the 'in.pv_system_size' column
+#Test_Optimied_Variables_reduce$in.pv_system_size <- ifelse(Test_Optimied_Variables_reduce$in.pv_system_size == "None" , "1.0 kWDC",Test_Optimied_Variables_reduce$in.pv_system_size)
+
+#unique(Test_Optimied_Variables_reduce$in.hvac_cooling_type)
+#Test_Optimied_Variables_reduce$in.hvac_cooling_type<-"Central AC"
+#Test_Optimied_Variables_reduce$in.hvac_cooling_partial_space_conditioning<-"40% Conditioned"
+#Test_Optimied_Variables_reduce$in.ducts<-"None"
+#Test_Optimied_Variables_reduce$in.hot_water_fixtures<-"50% Usage"
+dtest2 <- xgb.DMatrix(data = data.matrix(Test_Optimied_Variables_reduce[, -which(names(test_data) == "Final_Energy_KWH")]))
+
+predictions1 <- predict(xgb_model, dtest2)
+#actual vs predicted reduced due to upgrades
+df_new = data.frame(predictions1,Subset_V4$Final_Energy_KWH)
+#df_new
+sum(predictions1)
+sum(Subset_V4$Final_Energy_KWH)
+
+Test_Optimied_Variables$predictions1<-predictions1
+# Calculate the sum of predictions1 and Subset_V4$Final_Energy_KWH
+sum_predictions <- sum(predictions1)
+sum_final_energy <- sum(Subset_V4$Final_Energy_KWH)
+
+# Calculate the percentage increase
+percent_increase <- ((sum_final_energy - sum_predictions) / sum_predictions) * 100
+
+# Create a data frame for plotting
+data <- data.frame(
+  Variable = c("predictions1", "Subset_V4$Final_Energy_KWH"),
+  Sum = c(sum_predictions, sum_final_energy)
+)
+
+# Load necessary libraries
+library(ggplot2)
+
+# Create a line plot
+ggplot(data, aes(x = Variable, y = Sum, group = 1)) +
+  geom_line(color = "blue") +
+  geom_point(color = "blue", size = 3) +
+  geom_text(aes(label = paste(round(Sum, 2), "")), vjust = -0.5, size = 4) +
+  labs(title = "Percentage Increase when temperatures are 5 degree Celcius warmer",
+       x = "Temperature increase",
+       y = "Sum of Energy") +
+  theme_minimal()
+
+
+```
+To try and reduce this consumption we have tried to simulate how we can ring the energy consumption down with increased temperatures. We see that reducing ceiling fan usage along with water fixtures is not making a major difference. With the inconvenience of altering the efficient all across south Carolina the dip in usage is almost insignificant.
+
+```{r}
+Test_Optimied_Variables_reduce <-Subset_V4
+Test_Optimied_Variables_reduce$`Dry Bulb Temperature [°C]`<-Test_Optimied_Variables$`Dry Bulb Temperature [°C]`+5
+Test_Optimied_Variables_reduce$in.ceiling_fan<-"Standard Efficiency, No usage"
+#Test_Optimied_Variables$in.insulation_wall<-"Brick, 12-in, 3-wythe, R-7"
+#Test_Optimied_Variables$in.hvac_cooling_partial_space_conditioning<-"40% Conditioned"
+# Test_Optimied_Variables$in.usage_level<-"Low"
+#Test_Optimied_Variables_reduce$in.cooling_setpoint<-"80F"
+#Test_Optimied_Variables_reduce$in.pv_system_size<-"1.0 kWDC"
+
+# Assuming 'Test_Optimized_Variables_reduce' is your dataset
+
+# Replace "none" with "1kw" in the 'in.pv_system_size' column
+#Test_Optimied_Variables_reduce$in.pv_system_size <- ifelse(Test_Optimied_Variables_reduce$in.pv_system_size == "None" , "1.0 kWDC",Test_Optimied_Variables_reduce$in.pv_system_size)
+
+#unique(Test_Optimied_Variables_reduce$in.hvac_cooling_type)
+#Test_Optimied_Variables_reduce$in.hvac_cooling_type<-"Central AC"
+#Test_Optimied_Variables_reduce$in.hvac_cooling_partial_space_conditioning<-"40% Conditioned"
+#Test_Optimied_Variables_reduce$in.ducts<-"None"
+Test_Optimied_Variables_reduce$in.hot_water_fixtures<-"50% Usage"
+dtest2 <- xgb.DMatrix(data = data.matrix(Test_Optimied_Variables_reduce[, -which(names(test_data) == "Final_Energy_KWH")]))
+
+predictions1 <- predict(xgb_model, dtest2)
+#actual vs predicted reduced due to upgrades
+df_new = data.frame(predictions1,Subset_V4$Final_Energy_KWH)
+#df_new
+#sum(predictions1)
+#sum(Subset_V4$Final_Energy_KWH)
+
+Test_Optimied_Variables$predictions1<-predictions1
+# Calculate the sum of predictions1 and Subset_V4$Final_Energy_KWH
+sum_predictions <- sum(predictions1)
+Final_temp_increase <-sum_predictions 
+sum_final_energy <- sum(Subset_V4$Final_Energy_KWH)
+
+# Calculate the percentage increase
+percent_increase <- ((sum_final_energy - sum_predictions) / sum_predictions) * 100
+
+# Create a data frame for plotting
+data <- data.frame(
+  Variable = c("predictions1", "Subset_V4$Final_Energy_KWH"),
+  Sum = c(sum_predictions, sum_final_energy)
+)
+
+# Load necessary libraries
+library(ggplot2)
+
+# Create a line plot
+ggplot(data, aes(x = Variable, y = Sum, group = 1)) +
+  geom_line(color = "blue") +
+  geom_point(color = "blue", size = 3) +
+  geom_text(aes(label = paste(round(Sum, 2), "")), vjust = -0.5, size = 4) +
+  labs(title = "Percentage Increase when temperatures are 5 degree Celcius warmer",
+       x = "Temperature increase",
+       y = "Sum of Energy") +
+  theme_minimal()
+
+```
+When we turned the ceiling fan to optimal efficiency, the hot water fixtures and ACH levels to most optimised energy usages.While the observed decrease stood at approximately 1% despite alterations in three key factors, a deeper exploration into the logistics of these changes uncovered consequential insights. 
+
+This would be more cost effective if it was implementable. Each state has a minimum ACh that it needs the building to maintain. It is roughly 4ACH. 
+
+For a 1% decrease in energy consumption we would have to set it to 15ACH which is so much higher than required by law. This approach would be cost effective but not logical.
+
+
+```{r}
+Test_Optimied_Variables_reduce <-Subset_V4
+Test_Optimied_Variables_reduce$`Dry Bulb Temperature [°C]`<-Test_Optimied_Variables$`Dry Bulb Temperature [°C]`+5
+Test_Optimied_Variables_reduce$in.ceiling_fan<-"Standard Efficiency, No usage"
+#Test_Optimied_Variables$in.insulation_wall<-"Brick, 12-in, 3-wythe, R-7"
+#Test_Optimied_Variables$in.hvac_cooling_partial_space_conditioning<-"40% Conditioned"
+# Test_Optimied_Variables$in.usage_level<-"Low"
+#Test_Optimied_Variables_reduce$in.cooling_setpoint<-"80F"
+#Test_Optimied_Variables_reduce$in.pv_system_size<-"1.0 kWDC"
+
+# Assuming 'Test_Optimized_Variables_reduce' is your dataset
+
+# Replace "none" with "1kw" in the 'in.pv_system_size' column
+#Test_Optimied_Variables_reduce$in.pv_system_size <- ifelse(Test_Optimied_Variables_reduce$in.pv_system_size == "None" , "1.0 kWDC",Test_Optimied_Variables_reduce$in.pv_system_size)
+
+#unique(Test_Optimied_Variables_reduce$in.hvac_cooling_type)
+#Test_Optimied_Variables_reduce$in.hvac_cooling_type<-"Central AC"
+#Test_Optimied_Variables_reduce$in.hvac_cooling_partial_space_conditioning<-"40% Conditioned"
+#Test_Optimied_Variables_reduce$in.ducts<-"None"
+Test_Optimied_Variables_reduce$in.infiltration<-"ACH50 15"
+
+Test_Optimied_Variables_reduce$in.hot_water_fixtures<-"50% Usage"
+dtest2 <- xgb.DMatrix(data = data.matrix(Test_Optimied_Variables_reduce[, -which(names(test_data) == "Final_Energy_KWH")]))
+
+predictions1 <- predict(xgb_model, dtest2)
+#actual vs predicted reduced due to upgrades
+df_new = data.frame(predictions1,Final_temp_increase )
+#df_new
+#sum(predictions1)
+#sum(Subset_V4$Final_Energy_KWH)
+
+Test_Optimied_Variables$predictions1<-predictions1
+# Calculate the sum of predictions1 and Subset_V4$Final_Energy_KWH
+sum_predictions <- sum(predictions1)
+sum_final_energy <- Final_temp_increase 
+
+# Calculate the percentage increase
+percent_increase <- ((sum_final_energy - sum_predictions) / sum_predictions) * 100
+
+# Create a data frame for plotting
+data <- data.frame(
+  Variable = c("predictions with optimization", "5 Degree Predicted Energy Consumption "),
+  Sum = c(sum_predictions, sum_final_energy)
+)
+
+# Load necessary libraries
+library(ggplot2)
+
+# Create a line plot
+ggplot(data, aes(x = Variable, y = Sum, group = 1)) +
+  geom_line(color = "blue") +
+  geom_point(color = "blue", size = 3) +
+  geom_text(aes(label = paste(round(Sum, 2), "")), vjust = -0.5, size = 4) +
+  labs(title = "Percentage Decrease with Optimization",
+       x = "Temeprature Increase - optimizing fan usage and hot water fixtures",
+       y = "Sum of Energy") +
+  theme_minimal()
+
+```
+To make it easier to reduce energy we looked at the size of solar panels installed. Instead of increasing the sizes of solar panels in buildings with already existing solar panels. 
+We recommended the buildings with no solar panels to install the smallest one of “1KwDC”. This not only brugh the usage down, but is predicting a lower consumption than the usage in July of 2018.
+
+
+
+```{r}
+Test_Optimied_Variables_reduce <-Subset_V4
+Test_Optimied_Variables_reduce$`Dry Bulb Temperature [°C]`<-Test_Optimied_Variables$`Dry Bulb Temperature [°C]`+5
+#Test_Optimied_Variables_reduce$in.ceiling_fan<-"Standard Efficiency, No usage"
+#Test_Optimied_Variables$in.insulation_wall<-"Brick, 12-in, 3-wythe, R-7"
+#Test_Optimied_Variables$in.hvac_cooling_partial_space_conditioning<-"40% Conditioned"
+# Test_Optimied_Variables$in.usage_level<-"Low"
+#Test_Optimied_Variables_reduce$in.cooling_setpoint<-"80F"
+#Test_Optimied_Variables_reduce$in.pv_system_size<-"1.0 kWDC"
+
+# Assuming 'Test_Optimized_Variables_reduce' is your dataset
+
+# Replace "none" with "1kw" in the 'in.pv_system_size' column
+Test_Optimied_Variables_reduce$in.pv_system_size <- ifelse(Test_Optimied_Variables_reduce$in.pv_system_size == "None" , "1.0 kWDC",Test_Optimied_Variables_reduce$in.pv_system_size)
+
+#unique(Test_Optimied_Variables_reduce$in.hvac_cooling_type)
+#Test_Optimied_Variables_reduce$in.hvac_cooling_type<-"Central AC"
+#Test_Optimied_Variables_reduce$in.hvac_cooling_partial_space_conditioning<-"40% Conditioned"
+#Test_Optimied_Variables_reduce$in.ducts<-"None"
+#Test_Optimied_Variables_reduce$in.infiltration<-"ACH50 15"
+
+#Test_Optimied_Variables_reduce$in.hot_water_fixtures<-"50% Usage"
+dtest2 <- xgb.DMatrix(data = data.matrix(Test_Optimied_Variables_reduce[, -which(names(test_data) == "Final_Energy_KWH")]))
+
+predictions1 <- predict(xgb_model, dtest2)
+#actual vs predicted reduced due to upgrades
+df_new = data.frame(predictions1,Final_temp_increase )
+#df_new
+#sum(predictions1)
+#sum(Subset_V4$Final_Energy_KWH)
+
+Test_Optimied_Variables$predictions1<-predictions1
+# Calculate the sum of predictions1 and Subset_V4$Final_Energy_KWH
+sum_predictions <- sum(predictions1)
+sum_final_energy <- Final_temp_increase 
+
+# Calculate the percentage increase
+percent_increase <- ((sum_final_energy - sum_predictions) / sum_predictions) * 100
+
+# Create a data frame for plotting
+data <- data.frame(
+  Variable = c("predictions with optimization", "5 Degree Predicted Energy Consumption "),
+  Sum = c(sum_predictions, sum_final_energy)
+)
+```
+ Furthermore, the scalability and modularity of solar panel installations render them adaptable to various building sizes and energy requirements, making them a versatile and cost-efficient solution. In contrast, altering house insulation or upgrading appliance efficiency, while viable strategies, might involve more intricate and expensive modifications. 
+ 
+```{r}
+# Load necessary libraries
+library(ggplot2)
+
+# Create a line plot
+ggplot(data, aes(x = Variable, y = Sum, group = 1)) +
+  geom_line(color = "blue") +
+  geom_point(color = "blue", size = 3) +
+  geom_text(aes(label = paste(round(Sum, 2), "")), vjust = -0.5, size = 4) +
+  labs(title = "Percentage Decrease with Optimization",
+       x = "Temeprature Increase - optimizing PV usage",
+       y = "Sum of Energy") +
+  theme_minimal()
+
+```

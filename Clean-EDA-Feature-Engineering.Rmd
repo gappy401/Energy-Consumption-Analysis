@@ -1,0 +1,837 @@
+---
+title: "Cleaning-EDA-Feature-Engineering"
+output: html_document
+date: "2023-12-02"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+1.Fetching the Static house Dataset
+```{r}
+library (arrow)
+library(tidyverse)
+library(writexl)
+library(readxl)
+static_housing <- read_parquet("https://intro-datascience.s3.us-east-2.amazonaws.com/SC-data/static_house_info.parquet") 
+#str(static_housing)
+write_xlsx(static_housing, "static_housing.xlsx") #writng to excel for easier access (time consuming to pull repititively)
+meta_data <- read_csv("https://intro-datascience.s3.us-east-2.amazonaws.com/SC-data/data_dictionary.csv")
+
+```
+
+
+2. Cleaning static_housing dataset by removing NAs, checking black percentages and also any column that has only 1 value since it doesn't contribute to variability in energy
+
+```{r}
+# Checking for missing values (NAs) in static_housing
+#nas <- sapply(static_housing, function(x) sum(is.na(x)))
+#print(nas)
+
+cols_with_na <- names(static_housing)[colSums(is.na(static_housing)) > 1]
+# Display columns with more than one NA and since these are none we don't have to take any actions
+print(cols_with_na)
+# house dataset
+#commenting for a shorter document
+#summary(static_housing)
+
+
+
+
+```
+
+
+
+3.Creating Histograms for numeric coloumns like House size, Number of Bedrooms, type of REED(Regional Energy Deployment type) and Stories (number of floors)
+
+```{r}
+
+# histograms of numeric values of interest
+par(mfrow = c(1, 2))
+
+hist(static_housing$in.bedrooms, xlab="Bedroom Distributions ") #shows a roughly normal distribution
+#this graph is inline with what we think
+hist(static_housing$in.sqft, xlab="Area in sqft ")
+
+# although this is an important variable through research it might show insignificant in the model we will keep the varialbe for further testing
+hist(static_housing$in.reeds_balancing_area, xlab="Regional Energy Deployment type")
+
+
+
+#plot(static_housing$in.sqft~static_housing$in.reeds_balancing_area)
+hist(static_housing$in.geometry_stories, xlab="The stories distribution for buildings ")
+
+```
+
+4.Removing irrelevant coloumns ( columns with 1 value )
+
+```{r}
+# Initialize an empty array to store columns with only one unique value after removing blanks
+output_cols <- c()
+
+
+# Loop through columns in the static_housing dataset
+for (col in names(static_housing)) {
+  non_blank_values <- na.omit(static_housing[[col]])
+  non_blank_values <- non_blank_values[non_blank_values != ""] # Remove blank values
+  if (length(unique(non_blank_values)) == 1) {
+    output_cols <- c(output_cols, col)
+  }
+}
+
+# Display columns with only one unique value after removing blanks
+length(output_cols)
+
+
+# Remove columns with only one unique value from the static_housing dataset
+static_housing_filtered <- static_housing[, !names(static_housing) %in% output_cols]
+
+#look for blanks row wise
+
+# Calculate percentage of blanks and non-blanks in each column
+percent_blanks <- sapply(static_housing_filtered, function(x) mean(x == "") * 100)
+percent_non_blanks <- 100 - percent_blanks
+
+# Create a matrix with column names and their respective percentages of blanks and non-blanks
+blanks_vs_values_matrix <- matrix(c(percent_blanks, percent_non_blanks), nrow = 2, byrow = TRUE,
+                                  dimnames = list(c("Percentage of Blanks", "Percentage of Values"), names(static_housing_filtered)))
+
+# Print the matrix
+blanks_vs_values_matrix[, blanks_vs_values_matrix[1,] > 0]
+
+#since they have low blanks we can try to do some sort of interpolation
+
+# Display the updated dataset
+write_xlsx(static_housing_filtered, "static_housing_filtered.xlsx")
+str(static_housing_filtered)
+```
+
+Filtering only numeric colomns to create a correlation matrix
+```{r}
+library(corrplot)
+library(dplyr)
+
+
+# Select numeric columns using select_if() and is.numeric()
+numeric_cols <- static_housing_filtered %>%
+  select_if(is.numeric)
+
+# Select the 'county' column
+county_col <- static_housing_filtered %>%
+  select(in.county)
+
+# Combining the 'county' column with numeric columns
+result <- cbind(county_col, numeric_cols)
+str(result)
+```
+
+6. Creating a correlation amtrix here.
+
+Observations :
+Interesting to see here that for reeds we see a correlation for the area it is in hence we should keep this variable for further analysis and see if this is something to do with region
+```{r}
+
+#interesting to see here that for reeds we see a correlation for the area it is in hence we should keep this variable for further analysis and see if it is something to do with region
+
+correlation_matrix <- cor(result[, sapply(result, is.numeric)])
+corrplot(correlation_matrix)
+
+
+
+
+```
+
+7. Mapping county to Name
+
+Observations :
+Here we found the mapping for County ID and Name just for easy readbility
+```{r}
+# make a list with name of county vs the code given in the dataset
+ ICPSRNAM = c("ABBEVILLE", "AIKEN", "ALLENDALE", "ANDERSON", "BAMBERG", "BARNWELL", "BEAUFORT", "BERKELEY", "CALHOUN", "CHARLESTON", 
+               "CHEROKEE", "CHESTER", "CHESTERFIELD", "CLARENDON", "COLLETON", "DARLINGTON", "DILLON", "DORCHESTER", "EDGEFIELD", 
+               "FAIRFIELD", "FLORENCE", "GEORGETOWN", "GREENVILLE", "GREENWOOD", "HAMPTON", "HORRY", "JASPER", "KERSHAW", "LANCASTER", 
+               "LAURENS", "LEE", "LEXINGTON", "MARION", "MARLBORO", "MCCORMICK", "NEWBERRY", "OCONEE", "ORANGEBURG", "PICKENS", 
+               "RICHLAND", "SALUDA", "SPARTANBURG", "SUMTER", "UNION", "WILLIAMSBURG", "YORK")
+ 
+GISJOIN = c("G4500010", "G4500030", "G4500050", "G4500070", "G4500090", "G4500110", "G4500130", "G4500150", "G4500170", "G4500190", 
+              "G4500210", "G4500230", "G4500250", "G4500270", "G4500290", "G4500310", "G4500330", "G4500350", "G4500370", "G4500390", 
+              "G4500410", "G4500430", "G4500450", "G4500470", "G4500490", "G4500510", "G4500530", "G4500550", "G4500570", "G4500590", 
+              "G4500610", "G4500630", "G4500670", "G4500690", "G4500650", "G4500710", "G4500730", "G4500750", "G4500770", "G4500790", 
+              "G4500810", "G4500830", "G4500850", "G4500870", "G4500890", "G4500910")
+  
+List_Name<-data.frame(tolower(ICPSRNAM),(GISJOIN))
+
+# Group by 'in.county' and calculate the average of numeric columns
+# Group by 'in.county' and calculate the average of numeric columns while counting bldg_id occurrences
+county_counts <- result %>%
+  count(in.county,in.weather_file_latitude,in.weather_file_longitude)
+
+county_counts$County_name<-List_Name$tolower.ICPSRNAM.[match(county_counts$in.county,List_Name$X.GISJOIN.)]
+
+# get a county map from the library ( of south caroline)
+county_map <- map_data("county", region = "south carolina")
+county_map$subregion<-tolower(county_map$subregion)
+county_counts$in.county<-tolower(county_counts$County_name)
+
+
+```
+8.Creating a Map to understand how buildings are situated across South Carolina 
+Observations - We see that Greenville has the highest density, followed by colleton, georgetown, horry and so on.
+```{r}
+library(ggrepel)
+# Merge energy data with the county map
+merged_data <- merge(county_map, county_counts, by.x = "subregion", by.y = "County_name", all.x = TRUE)
+#merged_data
+# Create the heatmap
+
+ggplot(merged_data, aes(x = long, y = lat, group = group, fill = n)) +
+  geom_polygon() +
+  scale_fill_gradientn(colors = c("yellow", "red"), values = scales::rescale(c(0, 50, 100))) +
+  labs(title = "Building Density Heatmap by Counties in South Carolina") +
+  theme_minimal()+
+
+# Filter extreme counties based on some condition (for example, where n > 1
+# Add labels using geom_text_repel
+  geom_text_repel(
+    data = merged_data[!duplicated(merged_data$subregion), ], # Select only unique subregions
+    aes(label = subregion),
+    color = "black",
+    size = 3,
+    box.padding = unit(0.2, "lines") # Adjust the label padding if needed
+  )
+
+
+
+```
+Commenting out the code scraping the energy data for over 5.7 homes ( takes over 15 minutes)
+
+```{r}
+
+
+
+#commneting out the process to optimized computiong power, instead impoerting from an already saved file
+# Lets Scrape the energy data
+
+# 
+# bldg_ids <- unique(static_housing_filtered$bldg_id)
+# #appending links
+# links <- paste0("https://intro-datascience.s3.us-east-2.amazonaws.com/SC-data/2023-houseData/", bldg_ids, ".parquet")
+# #generating links
+# data_df <- data.frame(bldg_id = bldg_ids, link = links)
+
+
+
+```
+
+
+```{r}
+# # Assuming data_df dataframe is created with bldg_id and link columns
+# library(httr)
+# # Create an empty list to store data frames
+# parquet_data <- list()
+# 
+# 
+# 
+# # Loop through each link and read Parquet files
+# for (i in 1:nrow(data_df)) {
+#     link <- as.character(data_df[i, "link"])
+#     bldg_id <- as.character(data_df[i, "bldg_id"])
+# 
+# 
+#     response <- GET(link)
+# 
+# # Save the content to a temporary file
+# temp_parquet <- tempfile(fileext = ".parquet")
+# writeBin(content(response), temp_parquet)
+# 
+# # Read the Parquet file into a dataframe
+# df <- read_parquet(temp_parquet)
+# 
+# 
+#     # Assign bldg_id to the first column
+#     df$bldg_id <- bldg_id
+#   df<-df%>%filter(month(df$time)==7)
+#    # df<-df%>%filter(month(df$time) %in% c(5,6,7))
+#     #df$month<-month(df$time)
+#     # Add the dataframe to the list
+#     parquet_data[[i]] <- df
+#    cat("Progress: ", i, "/", nrow(data_df), "\n")
+# 
+# }
+# 
+# # Combine all data frames into a single data frame
+# 
+# combined_data <- do.call(rbind, parquet_data)
+# head(combined_data)
+# combined_data_1<-combined_data
+# #combined_data<-combined_dataf%>%filter(month(df$time)==7)
+# 
+# combined_data$hour<-hour(combined_data$time)
+# #head(combined_data$hour)
+# #taking sum of all the out. energy for 30 days accross each hour
+# aggregate_hourly<-combined_data%>%group_by(bldg_id,hour)%>%summarize(across(where(is.numeric), sum))
+# head(aggregate_hourly)
+# 
+# #write_xlsx(aggregate_hourly,"aggregate_hourly_Energy_Data.xlsx")
+
+```
+
+
+9. This is the energy data for all of july but on an hourly basis for all days of july by building id( a summation of energy simply), we have written it to a file for easier access and save time of repitied preprocessing
+merging happens here : 
+
+merged_house_Static_energy <- merge(static_housing_filtered,aggregate_hourly , by = "bldg_id", all = TRUE)
+```{r}
+
+# library(tidyverse)
+# library(writexl)
+# library(readxl)
+# aggregate_hourly<-read_xlsx("aggregate_hourly_Energy_Data.xlsx")
+# #merging the information  by building id  to get all the categorical variables value sin 1 dataset
+# 
+# head(merged_house_Static_energy)
+# write_xlsx(merged_house_Static_energy,"merged_house_Static_energy.xlsx")
+```
+
+
+10.EDA on the merged Energy Data for all the buildings in july on an hours basis ( i.e a row signifies 1pm for a building for all 30 days summation
+
+```{r}
+merged_house_Static_energy<-read_xlsx("merged_house_Static_energy.xlsx")
+#glimpse(merged_house_Static_energy) 
+#commenting for a better view
+#glimpse(merged_house_Static_energy)
+#grep("out.", names(merged_house_Static_energy))
+out_cols <- c(grep("out.", names(merged_house_Static_energy)))
+#out_cols`
+```
+Here we are mainly aggregating all the out coloumns as our goal is to predict the total energy consumption in south Carolina and not by any type of utility or fuel type
+```{r}
+# assign to a new dataframe
+merged_house_Static_energy_sum_out<-merged_house_Static_energy
+#aggregating all the energy coloumns and summing to Final_enery_KWH
+merged_house_Static_energy_sum_out$Final_Energy_KWH<- merged_house_Static_energy_sum_out %>%select(starts_with("out")) %>% rowSums(na.rm = TRUE)# 
+
+# removing out coloumns
+merged_house_Static_energy_sum_out<- merged_house_Static_energy_sum_out[, -out_cols]
+#glimpse(merged_house_Static_energy_sum_out)
+
+
+
+
+```
+
+All if these graphs were in line with our understanding of energy consumption. However, we see energy values in negative. This is because of the fact that some of the buildings are actually producing energy due to having solar panels fitted onto the roofs.
+```{r}
+#  Create a line plot of Final_Energy_KWH over time
+ggplot(merged_house_Static_energy_sum_out, aes(x = hour, y = Final_Energy_KWH)) +
+  geom_point() +
+  labs(x = "Hour", y = "Final Energy (KWH)", title = "Change in Final Energy Over Time")
+
+# Scatter plot of Final_Energy_KWH vs sqft
+ggplot(merged_house_Static_energy_sum_out, aes(x = in.sqft, y = Final_Energy_KWH)) +
+  geom_point() +
+  labs(x = "Square Feet", y = "Final Energy (KWH)", title = "Final Energy vs Square Feet")
+
+
+# Scatter plot of Final_Energy_KWH vs bedrooms
+ggplot(merged_house_Static_energy_sum_out, aes(x = in.bedrooms, y = Final_Energy_KWH)) +
+  geom_point() +
+  labs(x = "Number of Bedrooms", y = "Final Energy (KWH)", title = "Final Energy vs Number of Bedrooms")
+
+# Scatter plot of Final_Energy_KWH vs occupants
+ggplot(merged_house_Static_energy_sum_out, aes(x = in.occupants, y = Final_Energy_KWH)) +
+  geom_point() +
+  labs(x = "Number of Occupants", y = "Final Energy (KWH)", title = "Final Energy vs Number of Occupants")
+
+
+
+numeric_subset <- merged_house_Static_energy_sum_out %>% 
+  select(bldg_id,in.occupants,in.county,hour,Final_Energy_KWH,in.sqft,in.bedrooms )  %>%group_by(hour, in.county) %>%
+  summarise(across(where(is.numeric) & !matches("Final_Energy_KWH"), mean, na.rm = TRUE),
+            Final_Energy_KWH = sum(Final_Energy_KWH, na.rm = TRUE))
+
+glimpse(numeric_subset)
+
+
+
+
+```
+11.County Wise Analysis to see how they spend energy per hour. They all have a similar trend within a day with varying magnitutdes.
+```{r}
+#######County Wise Analysis
+library(ggplot2)
+
+# Line Plot: Hour vs. Final_Energy_KWH for a single county
+ggplot(data = numeric_subset, aes(x = hour, y = Final_Energy_KWH, group = in.county, color = in.county)) +
+  geom_line()
+```
+
+
+```{r}
+
+# Bar Chart: Average Final_Energy_KWH per hour across hours in july
+ggplot(data = numeric_subset, aes(x = factor(hour), y = Final_Energy_KWH, fill = factor(hour))) +
+  stat_summary(fun = mean, geom = "bar") +
+  labs(x = "Hour", y = "Average Final Energy (KWH)") +
+  theme(axis.text.x = element_text(angle = 90))
+
+
+
+# Scatter plot with smooth trend line for Final_Energy_KWH vs in.sqft shows strong relations
+ggplot(data = numeric_subset, aes(x = in.sqft, y = Final_Energy_KWH)) +
+  geom_point(alpha = 0.7) +  # Adding transparency to points
+  geom_smooth(method = "lm", se = FALSE, color = "blue") +  # Adding linear trend line
+  labs(x = "Square Footage", y = "Final Energy (KWH)") +  # Labels for axes
+  ggtitle("Final Energy vs Square Footage") +  # Title of the plot
+  theme_minimal()  # Using minimal theme
+
+# Scatter plot with smooth trend line for Final_Energy_KWH vs in.bedrooms
+ggplot(data = numeric_subset, aes(x = in.bedrooms, y = Final_Energy_KWH)) +
+  geom_point(alpha = 0.7) +  # Adding transparency to points
+  geom_smooth(method = "lm", se = FALSE, color = "green") +  # Adding linear trend line
+  labs(x = "Bedrooms", y = "Final Energy (KWH)") +  # Labels for axes
+  ggtitle("Final Energy vs Bedrooms") +  # Title of the plot
+  theme_minimal()  # Using minimal theme
+
+```
+
+
+
+
+
+12.There are about 300 homes that actually produce electricity, we will keep these so they provide us with a clear view of the energy consumtion and production
+
+```{r}
+Merged_Final<-merged_house_Static_energy_sum_out
+range(Merged_Final$Final_Energy_KWH)
+
+nrow(Merged_Final[Merged_Final$Final_Energy_KWH<0,] )# these buildings actually produce electricity
+
+```
+
+13. This section helped us in engineering or filtering out relevant variables for consumption, there are bar charts showcasing how with each variable mean consumption varies
+
+
+```{r}
+library(dplyr)
+
+# Calculate average based on category
+averages <- Merged_Final %>%
+  group_by(in.building_america_climate_zone) %>%
+  summarise(mean_value = mean(Final_Energy_KWH, na.rm = TRUE))
+
+# Display table with averages
+averages_table <- as.data.frame(table(Merged_Final$in.building_america_climate_zone))
+colnames(averages_table) <- c("Category of Weather", "Frequency")
+averages_table$Mean_Value <- averages$mean_value
+
+print(averages_table)
+```
+
+```{r}
+# Calculate average based on category
+averages <- Merged_Final %>%
+  group_by(in.ceiling_fan) %>%
+  summarise(mean_value = mean(Final_Energy_KWH, na.rm = TRUE))
+
+# Display table with averages
+averages_table <- as.data.frame(table(Merged_Final$in.ceiling_fan))
+colnames(averages_table) <- c("Category", "Frequency")
+averages_table$Mean_Value <- averages$mean_value
+
+#print(averages_table)
+
+ggplot(averages_table, aes(x = Category, y = Mean_Value, fill = Category)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Mean Energy Consumption by Ceiling fan",
+      
+       y = "Mean Energy Consumption (KWH)") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r}
+# Calculate average based on category
+averages <- Merged_Final %>%
+  group_by(in.clothes_dryer) %>%
+  summarise(mean_value = mean(Final_Energy_KWH, na.rm = TRUE))
+
+# Display table with averages
+averages_table <- as.data.frame(table(Merged_Final$in.clothes_dryer))
+colnames(averages_table) <- c("Category", "Frequency")
+averages_table$Mean_Value <- averages$mean_value
+
+print(averages_table)
+ggplot(averages_table, aes(x = Category, y = Mean_Value, fill = Category)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Mean Energy Consumption by Ceiling fan",
+      
+       y = "Mean Energy Consumption (KWH)") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+```{r}
+#ommit garages based of consideration of the lighting factor in the variable set instead of garage size , can do corr
+
+
+
+
+
+# Calculate average based on category
+averages <- Merged_Final %>%
+  group_by(in.heating_fuel) %>%
+  summarise(mean_value = mean(Final_Energy_KWH, na.rm = TRUE))
+
+# Display table with averages
+averages_table <- as.data.frame(table(Merged_Final$in.heating_fuel))
+colnames(averages_table) <- c("Category", "Frequency")
+averages_table$Mean_Value <- averages$mean_value
+
+print(averages_table)
+
+#
+```
+
+
+```{r}
+
+
+# Calculate average based on category
+averages <- Merged_Final %>%
+  group_by(in.hot_water_fixtures) %>%
+  summarise(mean_value = mean(Final_Energy_KWH, na.rm = TRUE))
+
+# Display table with averages
+averages_table <- as.data.frame(table(Merged_Final$in.hot_water_fixtures))
+colnames(averages_table) <- c("Category", "Frequency")
+averages_table$Mean_Value <- averages$mean_value
+
+print(averages_table)
+ggplot(averages_table, aes(x = Category, y = Mean_Value, fill = Category)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Mean Energy Consumption by Hot Water Fixtures",
+      
+       y = "Mean Energy Consumption (KWH)") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+```
+
+
+```{r}
+Merged_Final <- Merged_Final %>% mutate(in.income = case_when(in.income=='10000-14999'~1,
+in.income=='15000-19999'~2,
+in.income=='20000-24999'~3,
+in.income=='80000-99999'~4,
+in.income=='100000-119999'~5,
+in.income=='200000+'~6,
+in.income=='30000-34999'~7,
+in.income=='60000-69999'~8,
+in.income=='50000-59999'~9,
+in.income=='70000-79999'~10,
+in.income=='25000-29999'~11,
+in.income=='40000-44999'~12,
+in.income=='140000-159999'~13,
+in.income=='<10000'~14,
+in.income=='45000-49999'~15,
+in.income=='35000-39999'~16,
+in.income=='120000-139999'~17,
+in.income=='160000-179999'~18,
+in.income=='180000-199999'~19))
+
+Merged_Final <- Merged_Final %>% mutate(in.income = case_when(in.income <= 6 ~ 1, (in.income > 6 & in.income <= 12) ~ 2, (in.income > 12 & in.income <= 19) ~ 3))
+
+cor(Merged_Final$Final_Energy_KWH,Merged_Final$in.income)
+
+```
+```{r}
+# Calculate average based on category
+averages <- Merged_Final %>%
+  group_by(in.infiltration) %>%
+  summarise(mean_value = mean(Final_Energy_KWH, na.rm = TRUE))
+
+# Display table with averages
+averages_table <- as.data.frame(table(Merged_Final$in.infiltration))
+colnames(averages_table) <- c("Category", "Frequency")
+averages_table$Mean_Value <- averages$mean_value
+
+print(averages_table)
+
+ggplot(averages_table, aes(x = Category, y = Mean_Value, fill = Category)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Mean Energy Consumption by infiltration",
+      
+       y = "Mean Energy Consumption (KWH)") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+
+```
+```{r}
+
+# Calculate average based on category
+averages <- Merged_Final %>%
+  group_by(in.occupants) %>%
+  summarise(mean_value = mean(Final_Energy_KWH, na.rm = TRUE))
+
+# Display table with averages
+averages_table <- as.data.frame(table(Merged_Final$in.occupants))
+colnames(averages_table) <- c("Category", "Frequency")
+averages_table$Mean_Value <- averages$mean_value
+
+print(averages_table)
+```
+
+```{r}
+
+# Calculate average based on category
+averages <- Merged_Final %>%
+  group_by(in.vintage) %>%
+  summarise(mean_value = mean(Final_Energy_KWH, na.rm = TRUE))
+
+# Display table with averages
+averages_table <- as.data.frame(table(Merged_Final$in.vintage
+))
+colnames(averages_table) <- c("Category", "Frequency")
+averages_table$Mean_Value <- averages$mean_value
+
+print(averages_table)
+
+#in.misc_gas_fireplace	in.misc_gas_grill	in.misc_gas_lighting	in.misc_hot_tub_spa	in.misc_pool	in.misc_pool_heater
+#not significant due to small sample size
+```
+
+```{r}
+
+# Calculate average based on category
+averages <- Merged_Final %>%
+  group_by(in.water_heater_efficiency) %>%
+  summarise(mean_value = mean(Final_Energy_KWH, na.rm = TRUE))
+
+# Display table with averages
+averages_table <- as.data.frame(table(Merged_Final$in.water_heater_efficiency
+))
+colnames(averages_table) <- c("Category", "Frequency")
+averages_table$Mean_Value <- averages$mean_value
+
+print(averages_table)
+
+
+```
+
+```{r}
+
+# Calculate average based on category
+averages <- Merged_Final %>%
+  group_by(in.window_areas) %>%
+  summarise(mean_value = mean(Final_Energy_KWH, na.rm = TRUE))
+
+# Display table with averages
+averages_table <- as.data.frame(table(Merged_Final$in.window_areas
+))
+colnames(averages_table) <- c("Category", "Frequency")
+averages_table$Mean_Value <- averages$mean_value
+
+print(averages_table)
+
+
+```
+
+
+```{r}
+#--------------------------Blanks
+# # Calculate average based on category
+# averages <- Merged_Final %>%
+#   group_by(upgrade.water_heater_efficiency) %>%
+#   summarise(mean_value = mean(Final_Energy_KWH, na.rm = TRUE))
+# 
+# # Display table with averages
+# averages_table <- as.data.frame(table(Merged_Final$upgrade.water_heater_efficiency
+# ))
+# colnames(averages_table) <- c("Category", "Frequency")
+# averages_table$Mean_Value <- averages$mean_value
+# 
+# print(averages_table)
+# 
+
+```
+
+
+We scraped all the weather data. . All the weather data was numeric and we averaged it out on an hourly basis in july . This data was available on a county basis. We saved it in "aggregate_hourly_cdw.xlsx"
+# Final_Dataset<- merge(aggregate_hourly_cdw,merged_house_Static_energy , by = c("in.county","hour"), all = TRUE)
+```{r}
+# countys<- unique(merged_house_Static_energy$in.county)
+# links_countys <- paste0("https://intro-datascience.s3.us-east-2.amazonaws.com/SC-data/weather/2023-weather-data/", countys, ".csv")
+# links_countys
+# data_df_countys<- data.frame(countys = countys, links_countys  = links_countys)
+# 
+# 
+# # Assuming data_df dataframe is created with bldg_id and link columns
+# library(httr)
+# # Create an empty list to store data frames
+# parquet_data_countys <- list()
+# x<-(nrow(data_df_countys))
+# 
+# # Loop through each link and read Parquet files
+# for (i in 1:x) {
+#     link <- as.character(data_df_countys[i, "links_countys"])
+#     
+#     county <- as.character(data_df_countys[i, "countys"])
+#     
+#  
+# # Read the Parquet file into a dataframe
+#   df <- read_csv(link)
+# 
+#     
+#     # Assign bldg_id to the first column
+#    df$county<- county
+#    #df<-df%>%filter(month(energy_data$date_time)==7)
+#     # Add the dataframe to the list
+#    parquet_data_countys[[i]] <- df
+#    cat("Progress: ", i, "/",x, "\n")
+#   
+# }
+# 
+# combined_data_weather <- do.call(rbind,  parquet_data_countys)
+# combined_data_weather<-combined_data_weather%>% filter(month(combined_data_weather$date_time)==7)
+# head(combined_data_weather)
+# combined_data_weather$hour<-hour(combined_data_weather$date_time)
+# 
+# aggregate_hourly_cdw<-combined_data_weather%>%group_by(county,hour)%>%summarize(across(where(is.numeric), mean))
+# write_xlsx(aggregate_hourly_cdw,"aggregate_hourly_cdw.xlsx")
+
+
+
+```
+
+14. We merged the two datasets based of county and hour as the weather data was at that geanularity on aggregating by hour for the month of july
+This file has been saved as  "output_file.parquet"
+
+```{r}
+# library(readxl)
+# library(writexl)
+# library(arrow)
+aggregate_hourly_cdw<-read_xlsx("aggregate_hourly_cdw.xlsx")
+str(aggregate_hourly_cdw)
+# merged_house_Static_energy<-read_xlsx("merged_house_Static_energy.xlsx")
+# 
+# Final_Dataset<- merge(aggregate_hourly_cdw,merged_house_Static_energy , by = c("in.county","hour"), all = TRUE)
+# 
+# head(Final_Dataset)
+# 
+# write_parquet(Final_Dataset, "output_file.parquet")
+```
+
+15. We did the same out put coloumn summation we did for our cleaning here and saved it finally into one last file called Aggregate_Final_Dataset.parquet for save time. ( eachof this scraping and cleaning iteration was taking 1hour vs 3 minutes, on saving each stage into a parquet)
+```{r}
+# library(arrow)
+# library(tidyverse)
+# Final_Dataset<-read_parquet("output_file.parquet")
+# 
+# # Select columns starting with "out"
+# grep("out.", names(Final_Dataset))
+# out_cols <- c(grep("out.", names(Final_Dataset)))
+# out_cols
+# 
+# # View the selected columns
+# Aggregate_Final_Dataset<-Final_Dataset
+# Aggregate_Final_Dataset$Final_Energy_KWH<- Final_Dataset %>%select(starts_with("out")) %>% rowSums(na.rm = TRUE)# Displaying the first few rows of the selected columns
+# head(Aggregate_Final_Dataset)
+# Aggregate_Final_Dataset<- Aggregate_Final_Dataset[, -out_cols]
+# glimpse(Aggregate_Final_Dataset)
+# 
+# write_parquet(Aggregate_Final_Dataset, "Aggregate_Final_Dataset.parquet")
+```
+16. We export from the main final that we will be using for modeling and for the sake of weather analysis we aggregated the data by weather and averaged out any weather related parameters
+
+```{r}
+library(tidyverse)
+library(arrow)
+Aggregate_Final_Dataset<-read_parquet("Aggregate_Final_Dataset.parquet")
+glimpse(Aggregate_Final_Dataset)
+
+Weather_Energy<- Aggregate_Final_Dataset%>% group_by(hour)%>%select(hour,Final_Energy_KWH,`Dry Bulb Temperature [°C]`,`Relative Humidity [%]` ,`Wind Direction [Deg]` ,`Global Horizontal Radiation [W/m2]` ,`Direct Normal Radiation [W/m2]`   ,`Diffuse Horizontal Radiation [W/m2]`) %>%summarise(across(where(is.numeric) & !matches("Final_Energy_KWH"), mean, na.rm = TRUE),
+            Final_Energy_KWH = sum(Final_Energy_KWH, na.rm = TRUE))
+
+
+```
+17. Finally, we explored the weather aspects of the dataset and found some strong linear relationships. 
+
+Observations: Overall, all the weather related variables had some sort of strong correlation with energy consumption. Hence, we decided to keep all of them for our modelling phase.
+
+```{r}
+
+head(meta_data)
+
+ggplot(data = Weather_Energy, aes(x = `Dry Bulb Temperature [°C]`, y = Final_Energy_KWH)) +
+  geom_point(alpha = 0.7) +  # Adding transparency to points
+  geom_smooth(method = "lm", se = FALSE, color = "green") +  # Adding linear trend line
+  labs(x = "Dry Bulb Temperature [°C]", y = "Final Energy (KWH)") +  # Labels for axes
+  ggtitle("Dry Bulb Temperature [°C] vs Final Energy in July") +  # Title of the plot
+  theme_minimal() 
+
+
+
+ggplot(data = Weather_Energy, aes(x = `Relative Humidity [%]`, y = Final_Energy_KWH)) +
+  geom_point(alpha = 0.7) +  # Adding transparency to points
+  geom_smooth(method = "lm", se = FALSE, color = "green") +  # Adding linear trend line
+  labs(x = "Relative Humidity [%]", y = "Final Energy (KWH)") +  # Labels for axes
+  ggtitle("Relative Humidity [%] vs Total energy for July") +  # Title of the plot
+  theme_minimal() 
+
+
+ggplot(data = Weather_Energy, aes(x = `Wind Direction [Deg]`, y = Final_Energy_KWH)) +
+  geom_point(alpha = 0.7) +  # Adding transparency to points
+  geom_smooth(method = "lm", se = FALSE, color = "green") +  # Adding linear trend line
+  labs(x = "Wind Direction [Deg]", y = "Final Energy (KWH)") +  # Labels for axes
+  ggtitle("Wind Direction vs Final Energy in July") +  # Title of the plot
+  theme_minimal() 
+
+
+
+
+
+ggplot(data = Weather_Energy, aes(x = `Global Horizontal Radiation [W/m2]`, y = Final_Energy_KWH)) +
+  geom_point(alpha = 0.7) +  # Adding transparency to points
+  geom_smooth(method = "lm", se = FALSE, color = "green") +  # Adding linear trend line
+  labs(x = "Global Horizontal Radiation [W/m2]", y = "Final Energy (KWH)") +  # Labels for axes
+  ggtitle("Global Horizontal Radiation [W/m2] vs Final Energy in July") +  # Title of the plot
+  theme_minimal() 
+
+
+
+ggplot(data = Weather_Energy, aes(x = `Direct Normal Radiation [W/m2]`, y = Final_Energy_KWH)) +
+  geom_point(alpha = 0.7) +  # Adding transparency to points
+  geom_smooth(method = "lm", se = FALSE, color = "green") +  # Adding linear trend line
+  labs(x = "Direct Normal Radiation [W/m2]", y = "Final Energy (KWH)") +  # Labels for axes
+  ggtitle("Direct Normal Radiation [W/m2] vs Total energy for July") +  # Title of the plot
+  theme_minimal() 
+
+
+ggplot(data = Weather_Energy, aes(x = `Diffuse Horizontal Radiation [W/m2]`, y = Final_Energy_KWH)) +
+  geom_point(alpha = 0.7) +  # Adding transparency to points
+  geom_smooth(method = "lm", se = FALSE, color = "green") +  # Adding linear trend line
+  labs(x = "Diffuse Horizontal Radiation [W/m2]", y = "Final Energy (KWH)") +  # Labels for axes
+  ggtitle("Diffuse Horizontal Radiation [W/m2] vs Final Energy in July") +  # Title of the plot
+  theme_minimal() 
+
+library(corrplot)
+correlation_matrix <- cor(Weather_Energy)
+
+
+
+# Plotting the filtered correlation matrix using corrplot
+corrplot(correlation_matrix, method = "color", type = "upper", 
+         order = "hclust", addrect = 2)  # Adjust parameters as needed # Adjust parameters as needed
+# $ `Dry Bulb Temperature [°C]`                <dbl> 22.35581, 22.35581, 22.35581, 22.35581, 22.35581, 22.35581, 22.35581, 22.35581, 22.35…
+# $ `Relative Humidity [%]`                    <dbl> 95.18613, 95.18613, 95.18613, 95.18613, 95.18613, 95.18613, 95.18613, 95.18613, 95.18…
+# $ `Wind Speed [m/s]`                         <dbl> 1.089355, 1.089355, 1.089355, 1.089355, 1.089355, 1.089355, 1.089355, 1.089355, 1.089…
+# $ `Wind Direction [Deg]`                     <dbl> 125.5919, 125.5919, 125.5919, 125.5919, 125.5919, 125.5919, 125.5919, 125.5919, 125.5…
+# $ `Global Horizontal Radiation [W/m2]`       <dbl> 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+# $ `Direct Normal Radiation [W/m2]`   ,
+# $ `Diffuse Horizontal Radiation [W/m2]`
+```
