@@ -25,3 +25,6 @@ in July.
 4. Recommend for Decreasing Energy Consumption.
 5. Demonstrate Energy Consumption Reduction via a Model.
 
+# How to Navigate this Repository?
+
+Our Final Analysis is in the Final-Doucment, it encloses details of the data along with the projected energy consumption and how to reduce it. The two ".RMD" files consist of the code and the similar PDF files showcase the output of the same. Please note that there are no data sources as they are not available for public use.
