@@ -11,12 +11,9 @@ cleaning, followed by the development of predictive models. Within the
 dataset under analysis lies a wealth of information about individual
 residences, encompassing unique building IDs and specific attributes
 associated with each property. Furthermore, the dataset provides
-intricate hour-by-hour details of energy consumption patterns in these
+hour-by-hour details of energy consumption patterns in these
 residences.
-Moreover, the dataset meticulously integrates hour-by-hour weather
-data, systematically organized according to geographic regions. This
-weather information serves as a critical external factor significantly
-shaping energy usage patterns across diverse regions.
+
 The object of this project is to answer the following questions :
 1. Identify Factors Affecting Energy Consumption.
 2. Analyse Energy Consumption Variation with Temperature Increase
