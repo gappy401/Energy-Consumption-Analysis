@@ -88,5 +88,7 @@ The analysis concluded that installing '1KwDC' solar panels is the most cost-eff
 
 ## Data and Code Distribution/Reproducibility
 
-The final processed dataset used for this project is available in the `data/` folder. This dataset represents the cleaned and aggregated data prepared for analysis. All analysis was performed using **R**. Please note that the code developed for this project is **not open for distribution**. It remains proprietary and is not included in this repository. However, the provided dataset and findings ensure reproducibility of the analysis and conclusions.
+The final processed dataset used for this project is available in the `data/` folder. This dataset represents the cleaned and aggregated data prepared for analysis. All analysis was performed using **R**. 
+
+Please note that the code developed for this project is **not open for distribution**. It remains proprietary and is not included in this repository. However, the provided dataset and findings ensure reproducibility of the analysis and conclusions.
 
