@@ -21,4 +21,4 @@ Includes knitted output documents generated from the R Markdown scripts:
 ## 4. Other Files
 Additional resources created during the project:
 - **Energynomics-ppt.pptx**: PowerPoint presentation summarizing the project analysis and recommendations.
--**Energynomics-Final-Document.pdf**:  Provides a comprehensive overview of the EDA and modeling processes conducted in R.
+- **Energynomics-Final-Document.pdf**:  Provides a comprehensive overview of the EDA and modeling processes conducted in R.
