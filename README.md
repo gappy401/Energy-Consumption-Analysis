@@ -1,6 +1,6 @@
 # Folder Structure
 
-This document provides an overview of the folder structure and contents for the ENERGY-CONSUMPTION project.
+This document provides an overview of the folder structure and contents for the repository.
 
 ## 1. Code
 Contains scripts and code files for data analysis, feature engineering, and predictive modeling:
