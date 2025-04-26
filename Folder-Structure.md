@@ -1,4 +1,4 @@
-#Folder Structure
+##Folder Structure
 
 This document provides an overview of the folder structure and contents for the ENERGY-CONSUMPTION project.
 
