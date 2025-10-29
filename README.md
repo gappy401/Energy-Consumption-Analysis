@@ -1,8 +1,5 @@
 ## Project: Predictive Energy Consumption Forecast & Resource Optimization
 
-#### **Data Note**
-This analysis uses **real, private residential energy consumption data** from South Carolina and has been anonymized for publication.
-
 ---
 
 #### **I. Overview & Methodology**
@@ -30,4 +27,4 @@ The goal was to analyze and predict residential energy demand based on complex e
 
 #### **III. Relevant Technologies**
 
-`Python` / `XGBoost` / `SHAP` / `Time-Series Modeling` / `Pandas` / `SQL` / `Tableau` (or similar BI)
+`R` / `XGBoost` / `SHAP` / `Time-Series Modeling` / `SQL` / `Shiny`
