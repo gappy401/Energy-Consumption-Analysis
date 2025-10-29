@@ -17,8 +17,7 @@ This project demonstrates **predictive modeling**, and ** feature engineering** 
 | :--- | :--- | :--- |
 | **Prediction Model** | **XGBoost (Time-Series)** | Achieved **92% prediction accuracy** in forecasting residential energy demand. |
 | **Feature Interpretation** | **SHAP Values** | Used SHAP to create **explainable, actionable insights** (identifying the influence of specific weather/structural factors). |
-| **Business Impact** | Forecasting, Optimization | Enabled a **28% reduction in peak load** (translating directly to cost/risk reduction) via data-driven strategies. |
-| **Data Pipelines** | Python (Pandas), SQL | Implemented data wrangling and transformation techniques to prepare complex time-series data for modeling. |
+| **Business Impact** | Forecasting, Optimization | Enabled a **28% reduction in peak load** (translating directly to cost/risk reduction) via data-driven strategies. 
 
 ---
 
