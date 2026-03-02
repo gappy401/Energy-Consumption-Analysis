@@ -3,7 +3,7 @@
 
 #### **I. Overview & Methodology**
 
-This project demonstrates **predictive modeling**, and ** feature engineering** by for accurate forecasting and resource optimization system for residential energy usage. The goal was to analyze and predict residential energy demand based on complex environmental and structural inputs. The methodology involved:
+This project demonstrates **predictive modeling**, and **feature engineering** by for accurate forecasting and resource optimization system for residential energy usage. The goal was to analyze and predict residential energy demand based on complex environmental and structural inputs. The methodology involved:
 
 * **Feature Engineering:** Identifying and prioritizing non-obvious features crucial for accurate prediction, including **HVAC system type, fixtures, type of cooling/heating**, building characteristics (e.g., number of stories, square footage), and granular weather correlations (dry-bulb temperature, relative humidity). This mirrors the complexity of non-location-based valuation.
 * **Modeling:** Developing a high-accuracy, time-series-based XGBoost model to forecast consumption patterns.
