@@ -1,4 +1,4 @@
-## Project: Predictive Energy Consumption Forecast & Resource Optimization
+## Predictive Energy Consumption Forecast & Resource Optimization
 
 
 #### **I. Overview & Methodology**
